@@ -9,7 +9,8 @@ python3 extract_cluster_itf.py \
     --itf your_itf.txt \
     --output finalout_itfMPC80.txt
 
-    で
+で
+
     Cluster 1
 astromRMS   : 0.0829
 Observations: 13
@@ -28,11 +29,21 @@ Observations: 13
      H458971 4C2015 03 18.50552 12 09 16.89 +00 00 16.2          24.0 r1     T09
      H458971 4C2015 03 18.57964 12 09 14.67 +00 00 27.1          23.9 r1     T09
 
-     みたいな感じ
+みたいな感じ
+MPC提出用jsonも出します。
 
 
 
+Singleton_filter.py
 
+
+上の出力ファイルからシングルトン（1観測/1夜）を含むリンクを削除します。
+
+python3 Singleton_filter.py \
+  --itf finalout_itfMPC80.txt \
+  --linkage finalout_itfMPC80_linkage.json \
+  --output finalout_itfMPC80_filtered.txt \
+  --output-linkage finalout_itfMPC80_filtered_linkage.json
 
 
 
