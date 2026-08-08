@@ -65,7 +65,6 @@ def load_pairdet(filename):
     detnum is the row number beginning with 0
     after the header.
     """
-
     mapping = {}
 
     with open(filename, newline="") as f:
@@ -81,13 +80,45 @@ def load_itf(filename):
     """
     Read ITF into memory.
 
-    origindex = 0 corresponds to lines[0]
+    origindex = 0 corresponds to lines[0].
     """
-
     with open(filename) as f:
         lines = [line.rstrip("\n") for line in f]
 
     return lines
+
+
+def mpc80_datetime(line):
+    """
+    Return:
+
+        (year, month, day, hour, minute, second)
+
+    from an MPC 80-column observation line.
+
+    This is used to find the earliest observation
+    for each tracklet on each observing date.
+    """
+    try:
+        year = int(line[15:19])
+        month = int(line[20:22])
+        day = float(line[23:32])
+
+        hour = int(line[32:34])
+        minute = int(line[35:37])
+        second = float(line[38:44])
+
+        return (
+            year,
+            month,
+            day,
+            hour,
+            minute,
+            second
+        )
+
+    except (ValueError, IndexError):
+        return None
 
 
 def main():
@@ -96,21 +127,36 @@ def main():
         description="Extract ITF observations for every HelioLinC cluster."
     )
 
-    parser.add_argument("--clust2det", required=True,
-                        help="LPclust2det.csv")
+    parser.add_argument(
+        "--clust2det",
+        required=True,
+        help="LPclust2det.csv"
+    )
 
-    parser.add_argument("--sum", dest="sumfile",
-                        required=True,
-                        help="sumfile.csv")
+    parser.add_argument(
+        "--sum",
+        dest="sumfile",
+        required=True,
+        help="sumfile.csv"
+    )
 
-    parser.add_argument("--pairdet", required=True,
-                        help="pairdet.csv")
+    parser.add_argument(
+        "--pairdet",
+        required=True,
+        help="pairdet.csv"
+    )
 
-    parser.add_argument("--itf", required=True,
-                        help="Original ITF file")
+    parser.add_argument(
+        "--itf",
+        required=True,
+        help="Original ITF file"
+    )
 
-    parser.add_argument("--output", required=True,
-                        help="Output text file")
+    parser.add_argument(
+        "--output",
+        required=True,
+        help="Output text file"
+    )
 
     args = parser.parse_args()
 
@@ -123,8 +169,11 @@ def main():
 
     print("Writing output...")
 
-    linkage_json={"links":{}}
-    link_counter=1
+    linkage_json = {
+        "links": {}
+    }
+
+    link_counter = 1
 
     with open(args.output, "w") as out:
 
@@ -134,80 +183,205 @@ def main():
 
             observations = []
 
+            # ---------------------------------------------------------
+            # detnum -> origindex -> ITF observation
+            # ---------------------------------------------------------
+
             for det in detnums:
 
                 if det not in det_to_orig:
-                    print(f"Warning: detnum {det} not found.")
+                    print(
+                        f"Warning: detnum {det} not found."
+                    )
                     continue
 
                 orig = det_to_orig[det]
 
                 if orig < 0 or orig >= len(itf):
                     print(
-                        f"Warning: origindex {orig} out of range.")
+                        f"Warning: origindex {orig} out of range."
+                    )
                     continue
 
-                observations.append((orig, itf[orig]))
+                observations.append(
+                    (orig, itf[orig])
+                )
 
-            observations.sort(key=lambda x: x[0])
+            # ITFの元の順番に戻す
+            observations.sort(
+                key=lambda x: x[0]
+            )
 
-            observations.sort(key=lambda x: x[0])
+            # =========================================================
+            # MPC linkage JSON
+            #
+            # 同じ天体名が複数夜に観測されている場合：
+            #
+            #   H383244 / 2015-03-18 -> 最初の1観測
+            #   H383244 / 2015-03-20 -> 最初の1観測
+            #
+            # のように「天体名＋観測日」ごとに1エントリとする。
+            #
+            # 例:
+            #
+            # H383244  2015 03 18.47716
+            # H383244  2015 03 18.49910
+            # H383244  2015 03 18.53831
+            #
+            # H383244  2015 03 20.42657
+            # H383244  2015 03 20.46619
+            #
+            # H462554  2015 03 25.45755
+            # H462554  2015 03 25.46334
+            #
+            # =>
+            #
+            # H383244  2015 03 18.47716
+            # H383244  2015 03 20.42657
+            # H462554  2015 03 25.45755
+            #
+            # =========================================================
 
-            # Build one linkage entry per tracklet
             tracklets = {}
 
             for orig, line in observations:
 
+                # MPC object designation
                 tid = line[0:12].replace("*", "").strip()
-                date = line[15:32].strip()
+
+                # MPC observatory code
                 obs = line[77:80].strip()
 
-                year = int(line[15:19])
-                month = int(line[20:22])
-                day = float(line[23:32])
+                # Date/time
+                dt = mpc80_datetime(line)
 
-                timekey = (year, month, day)
+                if dt is None:
+                    print(
+                        "Warning: unable to parse MPC80 "
+                        f"date/time for origindex {orig}"
+                    )
+                    continue
 
-                if (tid not in tracklets or
-                        timekey < tracklets[tid][0]):
+                year, month, day, hour, minute, second = dt
 
-                    tracklets[tid] = (
-                        timekey,
-                        [tid, date, obs]
+                # MPC linkageに表示する日付文字列。
+                #
+                # line[15:32] をそのまま使うので、
+                # 例えば
+                #
+                # 2015 03 18.47716
+                #
+                # となる。
+                date = line[15:32].strip()
+
+                # 「同じ天体・同じ観測日」を1グループとする。
+                #
+                # day は浮動小数点なので、整数部分だけを
+                # 観測日として使う。
+                night_key = (
+                    tid,
+                    year,
+                    month,
+                    int(day)
+                )
+
+                # その天体・その日の最初の観測だけ保存する。
+                #
+                # dt 全体を比較するため、最も早い時刻が残る。
+                if (
+                    night_key not in tracklets
+                    or dt < tracklets[night_key][0]
+                ):
+                    tracklets[night_key] = (
+                        dt,
+                        [
+                            tid,
+                            date,
+                            obs
+                        ]
                     )
 
-            linkage_json["links"][f"link_{link_counter}"] = {
-                "trksubs": [
-                    v[1]
-                    for v in sorted(
-                        tracklets.values(),
-                        key=lambda x: x[0]
-                    )
-                ]
+            # 日時順に並べる
+            trksubs = [
+                item[1]
+                for item in sorted(
+                    tracklets.values(),
+                    key=lambda x: x[0]
+                )
+            ]
+
+            # MPC linkage JSONへ追加
+            linkage_json["links"][
+                f"link_{link_counter}"
+            ] = {
+                "trksubs": trksubs
             }
 
             link_counter += 1
-            out.write("#" * 72 + "\n")
-            out.write(f"Cluster {cluster}\n")
+
+            # =========================================================
+            # ITF text output
+            # =========================================================
+
+            out.write(
+                "#" * 72 + "\n"
+            )
+
+            out.write(
+                f"Cluster {cluster}\n"
+            )
 
             if cluster in rms:
-                out.write(f"astromRMS   : {rms[cluster]}\n")
+                out.write(
+                    f"astromRMS   : {rms[cluster]}\n"
+                )
             else:
-                out.write("astromRMS   : N/A\n")
+                out.write(
+                    "astromRMS   : N/A\n"
+                )
 
-            out.write(f"Observations: {len(observations)}\n\n")
+            out.write(
+                f"Observations: {len(observations)}\n\n"
+            )
 
             for orig, line in observations:
-                out.write(line + "\n")
+                out.write(
+                    line + "\n"
+                )
 
             out.write("\n")
 
-    jsonfile=args.output.rsplit(".",1)[0]+"_linkage.json"
-    with open(jsonfile,"w") as jf:
-        json.dump(linkage_json,jf,indent=2)
+    # =============================================================
+    # Linkage JSON output
+    # =============================================================
+
+    jsonfile = (
+        args.output.rsplit(".", 1)[0]
+        + "_linkage.json"
+    )
+
+    with open(
+        jsonfile,
+        "w",
+        encoding="utf-8"
+    ) as jf:
+
+        json.dump(
+            linkage_json,
+            jf,
+            indent=2,
+            ensure_ascii=False
+        )
+
+        jf.write("\n")
+
     print("Done.")
-    print(f"Linkage JSON written to {jsonfile}")
-    print(f"Output written to {args.output}")
+    print(
+        f"Linkage JSON written to {jsonfile}"
+    )
+    print(
+        f"Output written to {args.output}"
+    )
 
 
 if __name__ == "__main__":
