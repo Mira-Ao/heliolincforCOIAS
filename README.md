@@ -12,8 +12,8 @@ python3 extract_cluster_itf.py \
 で
 
     Cluster 1
-astromRMS   : 0.0829
-Observations: 13
+    astromRMS   : 0.0829
+    Observations: 13
 
      H378680*4C2015 03 20.41605 12 08 21.01 +00 05 00.1          23.4 i1     T09
      H378680 4C2015 03 20.46072 12 08 19.66 +00 05 06.8          23.5 i1     T09
@@ -39,7 +39,7 @@ Singleton_filter.py
 
 上の出力ファイルからシングルトン（1観測/1夜）を含むリンクを削除します。
 
-python3 Singleton_filter.py \
+ python3 Singleton_filter.py \
   --itf finalout_itfMPC80.txt \
   --linkage finalout_itfMPC80_linkage.json \
   --output finalout_itfMPC80_filtered.txt \
@@ -47,6 +47,6 @@ python3 Singleton_filter.py \
 
 
 
-      Earth1day200030.csv
+Earth1day200030.csv
 
-      heliolincで使える2000年から2030年までの地球位置ファイルです。
+heliolincで使える2000年から2030年までの地球位置ファイルです。
