@@ -50,3 +50,12 @@ Singleton_filter.py
 Earth1day200030.csv
 
 heliolincで使える2000年から2030年までの地球位置ファイルです。
+
+
+
+
+ITFsearch.py
+
+　python3 ITFsearch.py --itf itf.txt --output searchedITF.txt --startdate 2015-03-18 --enddate 2015-03-25 --RA "12 00 00" --Dec "-12 05 00" --deg 20 --station T09
+
+のようにして、任意のITFファイル（--itf）から出力ファイル（--output）に、任意の日付の期間（--startdateから--enddate）の、特定の座標位置（--RA --Dec）からX度以内（--deg）の特定の観測所（--station）の観測を書き出します。使わない引数は入力しなければOKで、たとえば--stationを飛ばせば条件に合う全世界の観測所の観測が含まれます。なおheliolincでエラーになる、位置情報付きの観測（C51 WISEなどの宇宙望遠鏡や移動観測地）は除外します。
