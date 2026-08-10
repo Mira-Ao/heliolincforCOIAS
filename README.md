@@ -59,3 +59,37 @@ ITFsearch.py
 　python3 ITFsearch.py --itf itf.txt --output searchedITF.txt --startdate 2015-03-18 --enddate 2015-03-25 --RA "12 00 00" --Dec "-12 05 00" --deg 20 --station T09
 
 のようにして、任意のITFファイル（--itf）から出力ファイル（--output）に、任意の日付の期間（--startdateから--enddate）の、特定の座標位置（--RA --Dec）からX度以内（--deg）の特定の観測所（--station）の観測を書き出します。使わない引数は入力しなければOKで、たとえば--stationを飛ばせば条件に合う全世界の観測所の観測が含まれます。なおheliolincでエラーになる、位置情報付きの観測（C51 WISEなどの宇宙望遠鏡や移動観測地）は除外します。
+
+
+ITF_centercalc.py
+
+上記ITFsearch.pyの支援用。たとえばCOIASの特定のフィールドの特定の観測期間の観測とリンクできるかもしれない観測候補をITFから取り出すには、ITFsearch.pyでその領域の中心座標から一定範囲の観測に絞って抽出するわけです。でもその「領域の中心座標」ってどうやって入手するの？という問題を解決してくれます。
+特定の観測期間、フィールドのCOIASの観測を大雑把に拾ったらこれを使います。
+python3 ITF_centercalc.py --input your_itf.txt
+すると
+Main observation region
+-----------------------
+largest group/all = 91.2005%
+largest group observations: 22988
+all observations: 25206
+
+Center
+------
+RA:  22 28 45.16
+Dec: -08 23 19.8
+
+Angular radius around center
+----------------------------
+80%: 11.445632 deg
+95%: 17.434665 deg
+99%: 21.508480 deg
+
+のように出力してくれます。1つのメインの観測領域が、入力した観測の何％を含んでいるか、そのメインの観測領域の中心座標、その観測領域に属する天体は中心座標から何度以内に80%/95%/99%がいるかを示しています。この場合は、入力した観測とリンクできそうな観測をITFsearchで拾うには、同じ日時で中心座標を出力通りにして、範囲を30度くらいに設定すればいいのではないでしょうか。1つの観測領域とは、隣の観測と1度以内に接近している間柄同士の観測の集団を表しており、主要な観測領域とはその中で最も多くの観測を含む集団です。
+
+
+
+MPCtoHSCmap.py
+
+HSCmap(https://hscmap.mtk.nao.ac.jp/hscMap5/app/) のカタログ機能で、MPS80形式の観測点を投影できるように、MPS80形式のファイルをHSCmap読み取り用に変換します。
+python3 MPCtoHSCmap.py --input your_itf.txt --output HSCmap.csv
+で実行します。
