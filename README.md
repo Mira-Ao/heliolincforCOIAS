@@ -88,7 +88,12 @@ Angular radius around center
 のように出力してくれます。1つのメインの観測領域が、入力した観測の何％を含んでいるか、そのメインの観測領域の中心座標、その観測領域に属する天体は中心座標から何度以内に80%/95%/99%がいるかを示しています。この場合は、入力した観測とリンクできそうな観測をITFsearchで拾うには、同じ日時で中心座標を出力通りにして、範囲を30度くらいに設定すればいいのではないでしょうか。1つの観測領域とは、隣の観測と1度以内に接近している間柄同士の観測の集団を表しており、主要な観測領域とはその中で最も多くの観測を含む集団です。
 
 
+find_astunpack.py
+MPCORBdiff.py
 
+dkbkさん作の https://github.com/dkbk/misc_coias/tree/master/python COIAS支援プログラム群のさらに支援スクリプト。
+obs80_find_ast_COIAS.pyの出力を圧縮なしの仮符号に直してくれるのが find_astunpack.py で、入力ファイルがOBS80だろうと名前のみ出力してくれます。
+mpcorb_find.pyの出力ファイルを2つ投げるとその差分を示してくれるのが MPCORBdiff.py で、単一衝だったのが複数衝になった天体と、衝の数が増えた遠方天体をターミナル画面に表示します。
 MPCtoHSCmap.py
 
 HSCmap(https://hscmap.mtk.nao.ac.jp/hscMap5/app/) のカタログ機能で、MPS80形式の観測点を投影できるように、MPS80形式のファイルをHSCmap読み取り用に変換します。
