@@ -88,14 +88,29 @@ Angular radius around center
 のように出力してくれます。1つのメインの観測領域が、入力した観測の何％を含んでいるか、そのメインの観測領域の中心座標、その観測領域に属する天体は中心座標から何度以内に80%/95%/99%がいるかを示しています。この場合は、入力した観測とリンクできそうな観測をITFsearchで拾うには、同じ日時で中心座標を出力通りにして、範囲を30度くらいに設定すればいいのではないでしょうか。1つの観測領域とは、隣の観測と1度以内に接近している間柄同士の観測の集団を表しており、主要な観測領域とはその中で最も多くの観測を含む集団です。
 
 
+
+ITFbysta_counter.py
+たとえば
+python3 ITFbysta_counter.py --itf itf.txt --station W84
+というコマンドで、itf.txtからw84の観測を、どの日に何件含むかを調べてくれます。これもITFsearchの支援用。
+
+
 find_astunpack.py
 MPCORBdiff.py
 
 dkbkさん作の https://github.com/dkbk/misc_coias/tree/master/python COIAS支援プログラム群のさらに支援スクリプト。
 obs80_find_ast_COIAS.pyの出力を圧縮なしの仮符号に直してくれるのが find_astunpack.py で、入力ファイルがOBS80だろうと名前のみ出力してくれます。
 mpcorb_find.pyの出力ファイルを2つ投げるとその差分を示してくれるのが MPCORBdiff.py で、単一衝だったのが複数衝になった天体と、衝の数が増えた遠方天体をターミナル画面に表示します。
+
+
+
 MPCtoHSCmap.py
 
 HSCmap(https://hscmap.mtk.nao.ac.jp/hscMap5/app/) のカタログ機能で、MPS80形式の観測点を投影できるように、MPS80形式のファイルをHSCmap読み取り用に変換します。
 python3 MPCtoHSCmap.py --input your_itf.txt --output HSCmap.csv
 で実行します。
+
+
+duplink_remover.py
+python3 duplink_remover.py --new-txt new.txt --new-json new.json --old-txt .\old1.txt .\old2.txt .\old3.txt
+以前リンクを作った観測群についてhelioloncの設定をより細かくしてリンクを増やした場合古いリンクにも含まれているリンクを除いて新しく増えたリンクを出力ファイルから取り出します。Singleton_filter.pyの出力ファイルの、新しいリンクのtxtとjson用に、古いリンクのtxtを上のようなコマンドで動かすと、古いリンクと完全一致するリンクが新しいふぁいう2つから除かれます。完全一致なので、1夜増えたとかは除外しません。
