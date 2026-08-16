@@ -44,6 +44,7 @@ Singleton_filter.py
   --linkage finalout_itfMPC80_linkage.json \
   --output finalout_itfMPC80_filtered.txt \
   --output-linkage finalout_itfMPC80_filtered_linkage.json
+ついでに、WAMOに投げる用の、各クラスター殻最初の1行の観測だけ取り出してfinalout_itfMPC80_filtered.txtの末尾に書き出してくれるので、リンクの成否を確認したい場合はこの部分だけWAMOに投げればOK。
 
 
 
