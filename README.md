@@ -66,27 +66,35 @@ ITF_centercalc.py
 
 上記ITFsearch.pyの支援用。たとえばCOIASの特定のフィールドの特定の観測期間の観測とリンクできるかもしれない観測候補をITFから取り出すには、ITFsearch.pyでその領域の中心座標から一定範囲の観測に絞って抽出するわけです。でもその「領域の中心座標」ってどうやって入手するの？という問題を解決してくれます。
 特定の観測期間、フィールドのCOIASの観測を大雑把に拾ったらこれを使います。
-python3 ITF_centercalc.py --input your_itf.txt
+python3 ITF_centercalc.py your_itf.txt
 すると
-Main observation region
------------------------
-largest group/all = 91.2005%
-largest group observations: 22988
-all observations: 25206
+========================================
+Observation group 1
+========================================
+Observations       : 6995
+largest group/all  : 6995/11855 (59.00%)
+Center RA          : 14 21 47.36
+Center Dec         : -12 24 12.21
+Radius containing 80% : 1.6729 deg
+Radius containing 95% : 1.9313 deg
+Radius containing 99% : 2.0943 deg
 
-Center
-------
-RA:  22 28 45.16
-Dec: -08 23 19.8
+Largest group is less than 90% of all observations.
+Calculating the second-largest group as well.
 
-Angular radius around center
-----------------------------
-80%: 11.445632 deg
-95%: 17.434665 deg
-99%: 21.508480 deg
+========================================
+Observation group 2
+========================================
+Observations       : 3489
+largest group/all  : 3489/11855 (29.43%)
+Center RA          : 14 51 31.44
+Center Dec         : -19 30 36.23
+Radius containing 80% : 0.8607 deg
+Radius containing 95% : 0.9986 deg
+Radius containing 99% : 1.1085 deg
 
 のように出力してくれます。1つのメインの観測領域が、入力した観測の何％を含んでいるか、そのメインの観測領域の中心座標、その観測領域に属する天体は中心座標から何度以内に80%/95%/99%がいるかを示しています。この場合は、入力した観測とリンクできそうな観測をITFsearchで拾うには、同じ日時で中心座標を出力通りにして、範囲を30度くらいに設定すればいいのではないでしょうか。1つの観測領域とは、隣の観測と1度以内に接近している間柄同士の観測の集団を表しており、主要な観測領域とはその中で最も多くの観測を含む集団です。
-
+なおCOIASやDECamでは同じ時期に空の大別して2区域を撮ることも多いので、最大観測数の観測領域が全体の90%を切るときは1つだけではなく第2グループも表示します。
 
 
 ITFbysta_counter.py
