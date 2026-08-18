@@ -1,6 +1,7 @@
 新月と満月　line6-
 ITF中W84の日別観測数 line382-
-DECam NEO survey領域の観測領域(ITF cetercalc.pyにて) line1836-
+COIASの主要観測領域(ITF cetercalc.pyにて)　line1836-
+DECam NEO survey領域の観測領域(ITF cetercalc.pyにて)  line1925-
 
 
 新月と満月
@@ -1830,6 +1831,94 @@ Date                 Observations
 2026-06-26          3
 2026-07-09          3
 2026-07-10          3
+
+
+COIAS Field
+
+Area2Deep
+========================================
+Observation group 1
+========================================
+Observations       : 6586
+largest group/all  : 6586/12269 (53.68%)
+Center RA          : 10 00 31.37
+Center Dec         : +02 14 29.89
+Radius containing 80% : 1.2245 deg
+Radius containing 95% : 1.4585 deg
+Radius containing 99% : 1.7464 deg
+
+Largest group is less than 90% of all observations.
+Calculating the second-largest group as well.
+
+
+Area201501 wide
+========================================
+Observation group 2
+========================================
+Observations       : 4950
+largest group/all  : 4950/12269 (40.35%)
+Center RA          : 09 03 03.06
+Center Dec         : +01 04 11.94
+Radius containing 80% : 2.1907 deg
+Radius containing 95% : 2.8223 deg
+Radius containing 99% : 3.1765 deg
+
+Area1Deep
+
+========================================
+Observation group 1 A
+========================================
+Observations       : 5600
+largest group/all  : 5600/9583 (58.44%)
+Center RA          : 02 19 13.15
+Center Dec         : -04 22 06.95
+Radius containing 80% : 0.7265 deg
+Radius containing 95% : 1.5992 deg
+Radius containing 99% : 2.3730 deg
+
+Largest group is less than 90% of all observations.
+Calculating the second-largest group as well.
+
+========================================
+Observation group 2 B
+========================================
+Observations       : 2795
+largest group/all  : 2795/9583 (29.17%)
+Center RA          : 23 27 44.23
+Center Dec         : -00 13 34.24
+Radius containing 80% : 1.2872 deg
+Radius containing 95% : 1.6073 deg
+Radius containing 99% : 1.8727 deg
+
+
+201503and05 wide
+
+========================================
+Observation group 1
+========================================
+Observations       : 6035
+largest group/all  : 6035/9416 (64.09%)
+Center RA          : 11 57 28.87
+Center Dec         : -00 15 25.76
+Radius containing 80% : 2.1976 deg
+Radius containing 95% : 2.8971 deg
+Radius containing 99% : 3.4078 deg
+
+Largest group is less than 90% of all observations.
+Calculating the second-largest group as well.
+
+========================================
+Observation group 2
+========================================
+Observations       : 3381
+largest group/all  : 3381/9416 (35.91%)
+Center RA          : 14 30 59.22
+Center Dec         : -00 13 40.62
+Radius containing 80% : 1.9547 deg
+Radius containing 95% : 2.5903 deg
+Radius containing 99% : 3.3970 deg
+
+
 
 
 
