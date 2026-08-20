@@ -53,6 +53,16 @@ Earth1day200030.csv
 heliolincで使える2000年から2030年までの地球位置ファイルです。
 
 
+split_heliohypo.py
+python split_heliohypo.py heliohypo_mb05.txt 334
+のようにして仮説ファイルを分割します。リンク数が増えるとメモリ消費量が増え処理が落ちるので分割は必須です。
+こうして分けた仮説ファイルについて実施するシェルスクリプトが
+run_heliohypo_batch.sh
+です。
+適宜
+chmod +x run_heliohypo_batch.sh　をして
+./run_heliohypo_batch.sh
+で走ります。
 
 
 ITFsearch.py
