@@ -45,7 +45,7 @@ Singleton_filter.py
   --output finalout_itfMPC80_filtered.txt \
   --output-linkage finalout_itfMPC80_filtered_linkage.json
 ついでに、WAMOに投げる用の、各クラスター殻最初の1行の観測だけ取り出してfinalout_itfMPC80_filtered.txtの末尾に書き出してくれるので、リンクの成否を確認したい場合はこの部分だけWAMOに投げればOK。
-
+ついでに、3夜しかないリンクのうちアークがMPCの受け入れ基準より長すぎるもの、2oppで2night+1nightのようなリンクも除去してくれるようにしています。
 
 
 Earth1day200030.csv
