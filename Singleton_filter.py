@@ -11,12 +11,13 @@ from datetime import date
 CLUSTER_RE = re.compile(r"^\s*Cluster\s+(-?\d+)\s*$")
 
 
-# ------------------------------------------------------------
+# ============================================================
 # MPC80の日付を取得
-# ------------------------------------------------------------
+# ============================================================
 
 def parse_mpc80_date(line):
     """Return (year, month, day) from an MPC80 observation."""
+
     if len(line) < 32:
         return None
 
@@ -30,9 +31,9 @@ def parse_mpc80_date(line):
     return year, month, day
 
 
-# ------------------------------------------------------------
+# ============================================================
 # MPC80観測行かどうか判定
-# ------------------------------------------------------------
+# ============================================================
 
 def is_mpc80_observation(line):
     """Identify MPC80 observation lines in finalout_itfMPC80.txt."""
@@ -55,9 +56,117 @@ def is_mpc80_observation(line):
     return parse_mpc80_date(line) is not None
 
 
-# ------------------------------------------------------------
+# ============================================================
+# 衝期間を計算
+# ============================================================
+
+def calculate_opp_periods(nights):
+    """
+    観測夜から衝期間（opp period）を作成する。
+
+    ルール:
+      - 観測夜を時系列順に並べる
+      - 隣接する観測夜の間隔が238日以内なら同じ衝期間
+      - 238日以上離れていれば別の衝期間
+
+    Returns:
+        list of dictionaries
+
+    例:
+        [2015-01-01, 2015-03-01, 2016-01-01]
+
+    のような観測夜列を与えると、各衝期間について
+    start / end / nights / span_days を返す。
+    """
+
+    if not nights:
+        return []
+
+    sorted_nights = sorted(nights)
+
+    periods = []
+
+    current_period = [sorted_nights[0]]
+
+    for previous, current in zip(
+        sorted_nights,
+        sorted_nights[1:]
+    ):
+
+        previous_date = date(
+            previous[0],
+            previous[1],
+            previous[2]
+        )
+
+        current_date = date(
+            current[0],
+            current[1],
+            current[2]
+        )
+
+        gap_days = (
+            current_date - previous_date
+        ).days
+
+        # ----------------------------------------------------
+        # 238日以内なら同じ衝期間
+        # 238日以上なら新しい衝期間
+        # ----------------------------------------------------
+
+        if gap_days < 238:
+
+            current_period.append(current)
+
+        else:
+
+            periods.append(current_period)
+
+            current_period = [current]
+
+    periods.append(current_period)
+
+    # --------------------------------------------------------
+    # 衝期間ごとの情報を作成
+    # --------------------------------------------------------
+
+    result = []
+
+    for period in periods:
+
+        first = period[0]
+        last = period[-1]
+
+        first_date = date(
+            first[0],
+            first[1],
+            first[2]
+        )
+
+        last_date = date(
+            last[0],
+            last[1],
+            last[2]
+        )
+
+        result.append(
+            {
+                "nights": period,
+                "night_count": len(period),
+                "start": first,
+                "end": last,
+                "span_days": (
+                    last_date - first_date
+                ).days
+            }
+        )
+
+    return result
+
+
+# ============================================================
 # クラスターの判定
-# ------------------------------------------------------------
+# ============================================================
 
 def finalize_cluster(cluster):
 
@@ -104,17 +213,52 @@ def finalize_cluster(cluster):
             nights[-1][2]
         )
 
-        span_days = (last_night - first_night).days
+        span_days = (
+            last_night - first_night
+        ).days
 
         cluster["three_night_span"] = span_days
 
         if span_days > 17:
             cluster["has_long_3night_span"] = True
 
+    # --------------------------------------------------------
+    # 条件3:
+    # 異なる衝期間が2つあり、
+    # そのうち片方の衝期間が1夜しかない場合は除外
+    #
+    # 衝期間:
+    # 隣接する観測夜の間隔が238日未満なら同じ期間
+    # 238日以上なら別期間
+    # --------------------------------------------------------
 
-# ------------------------------------------------------------
+    cluster["opp_periods"] = calculate_opp_periods(
+        nights
+    )
+
+    cluster["opp_period_count"] = len(
+        cluster["opp_periods"]
+    )
+
+    cluster["has_single_night_opp_period"] = False
+
+    if cluster["opp_period_count"] == 2:
+
+        period1 = cluster["opp_periods"][0]
+        period2 = cluster["opp_periods"][1]
+
+        if (
+            period1["night_count"] == 1
+            or
+            period2["night_count"] == 1
+        ):
+
+            cluster["has_single_night_opp_period"] = True
+
+
+# ============================================================
 # finalout_itfMPC80.txtをCluster単位で読み込む
-# ------------------------------------------------------------
+# ============================================================
 
 def read_clusters(filename):
 
@@ -141,6 +285,7 @@ def read_clusters(filename):
             if match:
 
                 if current is not None:
+
                     finalize_cluster(current)
                     clusters.append(current)
 
@@ -153,7 +298,9 @@ def read_clusters(filename):
 
                 continue
 
+            # ------------------------------------------------
             # Cluster開始前の行は無視
+            # ------------------------------------------------
 
             if current is None:
                 continue
@@ -171,6 +318,7 @@ def read_clusters(filename):
                 night = parse_mpc80_date(line)
 
                 if night is not None:
+
                     current["nights"][night] += 1
 
     # --------------------------------------------------------
@@ -178,15 +326,16 @@ def read_clusters(filename):
     # --------------------------------------------------------
 
     if current is not None:
+
         finalize_cluster(current)
         clusters.append(current)
 
     return clusters
 
 
-# ------------------------------------------------------------
+# ============================================================
 # linkage JSON読み込み
-# ------------------------------------------------------------
+# ============================================================
 
 def load_linkage(filename):
 
@@ -202,6 +351,7 @@ def load_linkage(filename):
         not isinstance(data, dict)
         or not isinstance(data.get("links"), dict)
     ):
+
         raise ValueError(
             'Linkage JSON に "links" がありません。'
         )
@@ -209,9 +359,9 @@ def load_linkage(filename):
     return data
 
 
-# ------------------------------------------------------------
+# ============================================================
 # linkage JSONからClusterを除外
-# ------------------------------------------------------------
+# ============================================================
 
 def filter_linkage(data, keep_flags):
 
@@ -224,7 +374,9 @@ def filter_linkage(data, keep_flags):
     存在するlinkだけを処理する。
     """
 
-    link_items = list(data["links"].items())
+    link_items = list(
+        data["links"].items()
+    )
 
     new_links = {}
     new_number = 1
@@ -233,11 +385,15 @@ def filter_linkage(data, keep_flags):
     # 一致する範囲だけ処理
     # --------------------------------------------------------
 
-    n = min(len(link_items), len(keep_flags))
+    n = min(
+        len(link_items),
+        len(keep_flags)
+    )
 
     for i in range(n):
 
         _, link_data = link_items[i]
+
         keep = keep_flags[i]
 
         if keep:
@@ -261,7 +417,10 @@ def filter_linkage(data, keep_flags):
 
     if len(link_items) > len(keep_flags):
 
-        for i in range(n, len(link_items)):
+        for i in range(
+            n,
+            len(link_items)
+        ):
 
             _, link_data = link_items[i]
 
@@ -272,14 +431,15 @@ def filter_linkage(data, keep_flags):
             new_number += 1
 
     result = dict(data)
+
     result["links"] = new_links
 
     return result
 
 
-# ------------------------------------------------------------
+# ============================================================
 # filtered ITFを書き出す
-# ------------------------------------------------------------
+# ============================================================
 
 def write_filtered_itf(
     clusters,
@@ -308,17 +468,24 @@ def write_filtered_itf(
         ):
 
             if keep:
+
                 for line in cluster["lines"]:
-                    out.write(line + "\n")
+                    out.write(
+                        line + "\n"
+                    )
 
         # ----------------------------------------------------
         # ファイル末尾に各Clusterの最初の観測を追加
         # ----------------------------------------------------
 
         out.write("\n")
-        out.write("########################################################################\n")
+        out.write(
+            "########################################################################\n"
+        )
         out.write("\n")
-        out.write("# First observation of each kept cluster\n")
+        out.write(
+            "# First observation of each kept cluster\n"
+        )
 
         for cluster, keep in zip(
             clusters,
@@ -328,26 +495,61 @@ def write_filtered_itf(
             if not keep:
                 continue
 
+            # ------------------------------------------------
             # 観測が存在するClusterだけ
+            # ------------------------------------------------
+
             if cluster["observations"]:
 
-                # 各Clusterの最初の観測
-                first_observation = cluster["observations"][0]
+                first_observation = (
+                    cluster["observations"][0]
+                )
 
-                out.write(first_observation + "\n")
+                out.write(
+                    first_observation + "\n"
+                )
 
 
-# ------------------------------------------------------------
+# ============================================================
+# 衝期間情報を表示
+# ============================================================
+
+def print_opp_period_info(cluster):
+
+    periods = cluster["opp_periods"]
+
+    print(
+        f"  Cluster {cluster['cluster']}: "
+        f"{len(periods)} opp periods"
+    )
+
+    for i, period in enumerate(
+        periods,
+        start=1
+    ):
+
+        print(
+            f"    OPP {i}: "
+            f"{period['start']} -> "
+            f"{period['end']}, "
+            f"{period['night_count']} nights, "
+            f"span = {period['span_days']} days"
+        )
+
+
+# ============================================================
 # メイン
-# ------------------------------------------------------------
+# ============================================================
 
 def main():
 
     parser = argparse.ArgumentParser(
         description=(
             "Remove clusters containing a singleton night, "
-            "and remove 3-night clusters whose first-to-last "
-            "night span exceeds 17 days."
+            "remove 3-night clusters whose first-to-last "
+            "night span exceeds 17 days, and remove clusters "
+            "with exactly two opp periods when one opp period "
+            "contains only one observing night."
         )
     )
 
@@ -372,18 +574,20 @@ def main():
     parser.add_argument(
         "--output-linkage",
         required=True,
-        help="Filtered MPC linkage JSON output file"
+        help="Filtered MPC linkage JSON output"
     )
 
     args = parser.parse_args()
 
-    # --------------------------------------------------------
+    # ========================================================
     # 読み込み
-    # --------------------------------------------------------
+    # ========================================================
 
     print("Reading ITF clusters...")
 
-    clusters = read_clusters(args.itf)
+    clusters = read_clusters(
+        args.itf
+    )
 
     if not clusters:
 
@@ -393,37 +597,63 @@ def main():
         )
 
     print(
-        f"  Input clusters: {len(clusters)}"
+        f"  Input clusters: "
+        f"{len(clusters)}"
     )
 
-    # --------------------------------------------------------
+    # ========================================================
     # Clusterごとの判定
-    # --------------------------------------------------------
+    # ========================================================
 
     keep_flags = []
 
     singleton_rejected = []
     long_3night_rejected = []
+    opp_period_rejected = []
 
     for cluster in clusters:
 
         # ----------------------------------------------------
-        # Singleton条件
+        # 条件1:
+        # Singleton night
         # ----------------------------------------------------
 
         if cluster["has_singleton_night"]:
 
             keep = False
-            singleton_rejected.append(cluster)
+
+            singleton_rejected.append(
+                cluster
+            )
 
         # ----------------------------------------------------
-        # 3夜・17日超過条件
+        # 条件2:
+        # 3夜・17日超過
         # ----------------------------------------------------
 
         elif cluster["has_long_3night_span"]:
 
             keep = False
-            long_3night_rejected.append(cluster)
+
+            long_3night_rejected.append(
+                cluster
+            )
+
+        # ----------------------------------------------------
+        # 条件3:
+        # 2衝期間かつ、
+        # 片方の衝期間が1夜のみ
+        # ----------------------------------------------------
+
+        elif cluster[
+            "has_single_night_opp_period"
+        ]:
+
+            keep = False
+
+            opp_period_rejected.append(
+                cluster
+            )
 
         # ----------------------------------------------------
         # その他は保持
@@ -435,33 +665,42 @@ def main():
 
         keep_flags.append(keep)
 
-    # --------------------------------------------------------
+    # ========================================================
     # 結果表示
-    # --------------------------------------------------------
+    # ========================================================
 
-    print(
-        f"  Kept clusters             : "
-        f"{sum(keep_flags)}"
+    kept_count = sum(
+        keep_flags
     )
 
     print(
-        f"  Removed (singleton night) : "
+        f"  Kept clusters                         : "
+        f"{kept_count}"
+    )
+
+    print(
+        f"  Removed (singleton night)             : "
         f"{len(singleton_rejected)}"
     )
 
     print(
-        f"  Removed (3 nights > 17 d) : "
+        f"  Removed (3 nights > 17 d)            : "
         f"{len(long_3night_rejected)}"
     )
 
     print(
-        f"  Total removed             : "
-        f"{len(clusters) - sum(keep_flags)}"
+        f"  Removed (2 opp periods, one 1-night) : "
+        f"{len(opp_period_rejected)}"
     )
 
-    # --------------------------------------------------------
+    print(
+        f"  Total removed                         : "
+        f"{len(clusters) - kept_count}"
+    )
+
+    # ========================================================
     # 3夜17日超過Clusterの詳細表示
-    # --------------------------------------------------------
+    # ========================================================
 
     if long_3night_rejected:
 
@@ -479,13 +718,34 @@ def main():
 
             print(
                 f"  Cluster {cluster['cluster']}: "
-                f"{nights[0]} -> {nights[-1]}, "
-                f"span = {cluster['three_night_span']} days"
+                f"{nights[0]} -> "
+                f"{nights[-1]}, "
+                f"span = "
+                f"{cluster['three_night_span']} days"
             )
 
-    # --------------------------------------------------------
+    # ========================================================
+    # 2衝期間・片方1夜のCluster詳細表示
+    # ========================================================
+
+    if opp_period_rejected:
+
+        print("")
+        print(
+            "Clusters removed because they have "
+            "exactly 2 opp periods and one period "
+            "contains only 1 observing night:"
+        )
+
+        for cluster in opp_period_rejected:
+
+            print_opp_period_info(
+                cluster
+            )
+
+    # ========================================================
     # ITF出力
-    # --------------------------------------------------------
+    # ========================================================
 
     write_filtered_itf(
         clusters,
@@ -499,11 +759,13 @@ def main():
         f"{args.output}"
     )
 
-    # --------------------------------------------------------
+    # ========================================================
     # linkage JSON
-    # --------------------------------------------------------
+    # ========================================================
 
-    print("Reading linkage JSON...")
+    print(
+        "Reading linkage JSON..."
+    )
 
     linkage = load_linkage(
         args.linkage
@@ -519,9 +781,9 @@ def main():
         keep_flags
     )
 
-    # --------------------------------------------------------
+    # ========================================================
     # JSON出力
-    # --------------------------------------------------------
+    # ========================================================
 
     with open(
         args.output_linkage,
@@ -546,6 +808,10 @@ def main():
     print("")
     print("Done.")
 
+
+# ============================================================
+# エントリーポイント
+# ============================================================
 
 if __name__ == "__main__":
     main()
